@@ -53,54 +53,60 @@ The pipeline is designed to be repeatable, testable, and containerized.
 | CI/CD | GitHub Actions |
 | Container registry | GitHub Container Registry (GHCR) |
 
+
 ## Architecture
 
-```text
-                 World Bank API
-                       |
-                       v
-                Python Extract
-              (Pagination / Retry)
-                       |
-                       v
-                 Transformation
-              (JSON Flattening)
-                       |
-                       v
-                   Validation
-          (Schema / Data Quality Checks)
-                       |
-                       v
-                 PostgreSQL
-                (Batch Loading)
-                       |
-                       v
-                UPSERT Strategy
+```mermaid
+flowchart TD
+    A["World Bank Indicators API"] --> B["Python ETL Application"]
+
+    subgraph ETL["ETL Processing"]
+        B --> C["Extract"]
+        C --> D["Transform"]
+        D --> E["Validate"]
+        E --> F["Load"]
+    end
+
+    F --> G[("PostgreSQL Database")]
+    G --> H["world_bank_observations"]
+
+    style A fill:#DCEBFF,stroke:#2563EB,color:#172554
+    style G fill:#D1FAE5,stroke:#059669,color:#064E3B
+    style H fill:#D1FAE5,stroke:#059669,color:#064E3B
 ```
 
-### CI/CD Workflow
 
-```text
-              GitHub Repository
-                      |
-                      v
-                GitHub Actions
-                      |
-                      v
-              Install Dependencies
-                      |
-                      v
-                 Unit Tests
-                      |
-                      v
-            PostgreSQL Integration Tests
-                      |
-                      v
-                 Docker Build
-                      |
-                      v
-              Publish to GHCR
+
+
+## CI/CD Workflow
+
+```mermaid
+flowchart TD
+    A["Developer Push / Pull Request"] --> B["GitHub Repository"]
+    B --> C["GitHub Actions Trigger"]
+    C --> D["Checkout Source Code"]
+    D --> E["Set Up Python 3.10"]
+    E --> F["Install Dependencies"]
+    F --> G["Run Unit Tests"]
+    G --> H["Run PostgreSQL Integration Tests"]
+
+    H --> I{"All Tests Passed?"}
+
+    I -->|No| J["Workflow Failed"]
+    I -->|Yes| K["Extract Docker Metadata"]
+    K --> L["Build Docker Image"]
+
+    L --> M{"Pull Request?"}
+
+    M -->|Yes| N["Build Only"]
+    M -->|No| O["Login to GHCR"]
+    O --> P["Publish Docker Image"]
+
+    style I fill:#FEF3C7,stroke:#D97706,color:#78350F
+    style J fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    style P fill:#D1FAE5,stroke:#059669,color:#064E3B
 ```
+
 
 The GitHub Actions workflow runs tests before publishing the Docker image. Pull requests run the build and tests without publishing an image.
 
