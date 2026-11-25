@@ -27,7 +27,17 @@ def settings():
         "WB_MAX_RETRIES": "3",
         "WB_BACKOFF_FACTOR": "1",
         "APP_ENV": "testing",
-        "LOG_LEVEL": "INFO"
+        "LOG_LEVEL": "INFO",
+
+        # Database test configuration
+        "DB_HOST": "localhost",
+        "DB_PORT": "5432",
+        "DB_NAME": "worldbank_etl_test",
+        "DB_USER": "postgres",
+        "DB_PASSWORD": "postgres",
+        "DB_SCHEMA": "public",
+        "DB_TABLE": "world_bank_observations",
+        "DB_BATCH_SIZE": "1000",
     })
 
 

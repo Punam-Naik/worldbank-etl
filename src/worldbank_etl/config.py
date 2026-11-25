@@ -32,6 +32,15 @@ class Settings:
     app_env: str
     log_level: str
 
+    db_host: str
+    db_port: int
+    db_name: str
+    db_user: str
+    db_password: str
+    db_schema: str
+    db_table: str
+    db_batch_size: int
+
 
 def load_settings(
     env: Optional[Mapping[str, str]] = None
@@ -87,7 +96,16 @@ def load_settings(
         wb_backoff_factor=get_float("WB_BACKOFF_FACTOR", 1.0),
 
         app_env=env.get("APP_ENV", "development").lower(),
-        log_level=env.get("LOG_LEVEL", "INFO").upper()
+        log_level=env.get("LOG_LEVEL", "INFO").upper(),
+
+        db_host=get_required("DB_HOST"),
+        db_port=get_int("DB_PORT", 5432),
+        db_name=get_required("DB_NAME"),
+        db_user=get_required("DB_USER"),
+        db_password=get_required("DB_PASSWORD"),
+        db_schema=get_required("DB_SCHEMA"),
+        db_table=get_required("DB_TABLE"),
+        db_batch_size=get_int("DB_BATCH_SIZE", 1000),
     )
 
     # Configuration validation
@@ -122,5 +140,11 @@ def load_settings(
         "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
     }:
         raise ValueError("Invalid LOG_LEVEL")
+
+    if settings.db_port <= 0 or settings.db_port > 65535:
+        raise ValueError("DB_PORT must be between 1 and 65535")
+
+    if settings.db_batch_size <= 0:
+        raise ValueError("DB_BATCH_SIZE must be greater than zero")
 
     return settings

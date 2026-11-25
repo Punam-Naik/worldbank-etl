@@ -6,6 +6,8 @@ from worldbank_etl.config import load_settings
 
 @pytest.fixture
 def valid_config():
+    """Provide valid test configuration without reading .env."""
+
     return {
         "WB_BASE_URL": "https://api.worldbank.org/v2",
         "WB_COUNTRY": "IND",
@@ -16,9 +18,20 @@ def valid_config():
         "WB_TIMEOUT_SECONDS": "30",
         "WB_MAX_RETRIES": "3",
         "WB_BACKOFF_FACTOR": "1",
-        "APP_ENV": "development",
-        "LOG_LEVEL": "INFO"
+        "APP_ENV": "testing",
+        "LOG_LEVEL": "INFO",
+
+        # Database test configuration
+        "DB_HOST": "localhost",
+        "DB_PORT": "5432",
+        "DB_NAME": "worldbank_etl_test",
+        "DB_USER": "test_user",
+        "DB_PASSWORD": "test_password",
+        "DB_SCHEMA": "public",
+        "DB_TABLE": "world_bank_observations",
+        "DB_BATCH_SIZE": "1000",
     }
+
 
 
 def test_load_valid_configuration(valid_config):
