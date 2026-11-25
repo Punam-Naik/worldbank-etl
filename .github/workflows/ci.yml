@@ -7,7 +7,6 @@ on:
       - main
     tags:
       - "v*"
-
   pull_request:
     branches:
       - main
@@ -18,12 +17,54 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: punam-naik/worldbank-etl
 
 jobs:
   test-and-publish:
     name: Test and Publish Docker Image
     runs-on: ubuntu-latest
+
+    # PostgreSQL database for integration tests
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: worldbank_etl_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test_user -d worldbank_etl_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    # Environment variables used by the application and tests
+    env:
+      RUN_DB_INTEGRATION_TESTS: "1"
+
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: worldbank_etl_test
+      DB_USER: test_user
+      DB_PASSWORD: test_password
+      DB_SCHEMA: public
+      DB_TABLE: world_bank_observations_test
+      DB_BATCH_SIZE: 1000
+
+      WB_BASE_URL: https://api.worldbank.org/v2
+      WB_COUNTRY: IND
+      WB_INDICATOR: SP.POP.TOTL
+      WB_START_YEAR: 2000
+      WB_END_YEAR: 2024
+      WB_PAGE_SIZE: 100
+      WB_TIMEOUT_SECONDS: 30
+      WB_MAX_RETRIES: 3
+      WB_BACKOFF_FACTOR: 1
+
+      APP_ENV: testing
+      LOG_LEVEL: INFO
 
     steps:
       # 1. Checkout source code
@@ -44,12 +85,14 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      # 4. Run unit tests
+      # 4. Run unit and integration tests
       - name: Run unit and integration tests
         env:
           PYTHONPATH: src
         run: |
-          python -m pytest tests/unit tests/integration -v --cov=worldbank_etl --cov-report=term-missing
+          python -m pytest tests/unit tests/integration -v \
+            --cov=worldbank_etl \
+            --cov-report=term-missing
 
       # 5. Generate Docker image metadata and tags
       - name: Extract Docker metadata
@@ -82,47 +125,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-jobs:
-  test-and-publish:
-    name: Test and Publish Docker Image
-    runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: worldbank_etl_test
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U test_user -d worldbank_etl_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    env:
-      RUN_DB_INTEGRATION_TESTS: "1"
-
-      DB_HOST: localhost
-      DB_PORT: 5432
-      DB_NAME: worldbank_etl_test
-      DB_USER: test_user
-      DB_PASSWORD: test_password
-      DB_SCHEMA: public
-      DB_TABLE: world_bank_observations_test
-      DB_BATCH_SIZE: 1000
-
-      WB_BASE_URL: https://api.worldbank.org/v2
-      WB_COUNTRY: IND
-      WB_INDICATOR: SP.POP.TOTL
-      WB_START_YEAR: 2000
-      WB_END_YEAR: 2024
-      WB_PAGE_SIZE: 100
-      WB_TIMEOUT_SECONDS: 30
-      WB_MAX_RETRIES: 3
-      WB_BACKOFF_FACTOR: 1
-      APP_ENV: testing
-      LOG_LEVEL: INFO
